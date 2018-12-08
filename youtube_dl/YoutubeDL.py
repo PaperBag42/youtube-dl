@@ -911,7 +911,7 @@ class YoutubeDL(object):
             if playlistitems_str is not None:
                 def iter_playlistitems(format):
                     for string_segment in format.split(','):
-                        if '-' in string_segment:
+                        if '-' in string_segment[1:]:
                             start, end = string_segment.split('-')
                             for item in range(int(start), int(end) + 1):
                                 yield int(item)
@@ -923,9 +923,13 @@ class YoutubeDL(object):
 
             def make_playlistitems_entries(list_ie_entries):
                 num_entries = len(list_ie_entries)
-                return [
-                    list_ie_entries[i - 1] for i in playlistitems
-                    if -num_entries <= i - 1 < num_entries]
+                res_entries = []
+                for i in playlistitems:
+                    if i > 0:
+                        i -= 1
+                    if -num_entries <= i < num_entries:
+                        res_entries.append(list_ie_entries[i])
+                return res_entries
 
             def report_download(num_entries):
                 self.to_screen(
@@ -956,8 +960,10 @@ class YoutubeDL(object):
                 report_download(n_entries)
             else:  # iterable
                 if playlistitems:
-                    entries = make_playlistitems_entries(list(itertools.islice(
-                        ie_entries, 0, max(playlistitems))))
+                    entries = make_playlistitems_entries(list(
+                        itertools.islice(ie_entries, 0, max(playlistitems))
+                        if all(i >= 0 for i in playlistitems)
+                        else ie_entries))
                 else:
                     entries = list(itertools.islice(
                         ie_entries, playliststart, playlistend))
